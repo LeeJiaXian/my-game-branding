@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自媒體遊戲化視覺強化範本 | 我獨自升級</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --primary-green: #22c55e;
+            --accent-yellow: #facc15;
+            --mid-purple: #a855f7;
+            --boss-red: #ef4444;
+            --cyan-accent: #22d3ee;
+            --border-pixel: 4px;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow-x: hidden;
+            transition: filter 0.5s ease;
+        }
+
+        /* 鎖定狀態背景 */
+        body.system-locked {
+            filter: grayscale(0.8) contrast(1.2);
+            pointer-events: none;
+        }
+
+        .pixel-font {
+            font-family: 'Press+Start+2P', cursive;
+            text-transform: uppercase;
+        }
+
+        .pixel-border {
+            border: var(--border-pixel) solid white;
+            box-shadow: 0 4px 0 0 #000, 0 -4px 0 0 #000, 4px 0 0 0 #000, -4px 0 0 0 #000;
+            position: relative;
+        }
+
+        .pixel-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--primary-green);
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.5);
+        }
+
+        .pixel-button:active:not(:disabled) {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.5);
+        }
+
+        .pixel-button:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .xp-bar-container {
+            width: 100%;
+            height: 1.25rem;
+            background-color: #1e293b;
+            border: 2px solid #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #86efac);
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #hp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ef4444, #f87171);
+            width: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .hp-low {
+            animation: hp-blink 0.5s infinite alternate;
+        }
+
+        @keyframes hp-blink {
+            from { filter: brightness(1); }
+            to { filter: brightness(1.5); }
+        }
+
+        .quest-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .quest-item.completed {
+            border-color: var(--primary-green);
+            background: rgba(34, 197, 94, 0.1);
+            opacity: 0.7;
+            text-decoration: line-through;
+            pointer-events: none;
+        }
+
+        /* 鎖定彈窗 */
+        #lockout-overlay {
+            position: fixed; inset: 0;
+            z-index: 1000;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center; justify-content: center;
+            flex-direction: column;
+            pointer-events: auto;
+        }
+
+        #lockout-overlay.active { display: flex; }
+
+        /* 藥水物品樣式 */
+        .potion-slot {
+            width: 50px;
+            height: 50px;
+            background: rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.2);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .potion-slot:hover { border-color: var(--accent-yellow); background: rgba(250, 204, 21, 0.1); }
+        .potion-badge {
+            position: absolute;
+            top: -5px; right: -5px;
+            background: var(--boss-red);
+            color: white;
+            font-size: 10px;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        /* BOSS 區塊特有 */
+        .boss-glow-red { box-shadow: 0 0 20px rgba(239, 68, 68, 0.1); border-color: var(--boss-red) !important; }
+        .boss-glow-purple { box-shadow: 0 0 20px rgba(168, 85, 247, 0.1); border-color: var(--mid-purple) !important; }
+
+        .boss-input {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; padding: 12px; width: 100%; outline: none;
+        }
+
+        .trophy-list { background: rgba(0,0,0,0.3); border-left: 1px solid rgba(255,255,255,0.1); }
+
+        /* 商店樣式 */
+        .shop-item {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .shop-item.redeemed {
+            opacity: 0.6;
+            background: rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        .shop-item.redeemed .item-name {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- 鎖定覆蓋層 -->
+    <div id="lockout-overlay">
+        <div class="text-red-500 pixel-font text-6xl mb-8 animate-pulse text-center">GAME OVER</div>
+        <div class="bg-red-600 text-white px-8 py-6 pixel-border border-white text-center mx-4">
+            <h2 class="text-2xl font-bold mb-4">你已被擊倒！</h2>
+            <p class="pixel-font text-xs mb-6">Insufficient Mental Power (HP: 0)</p>
+            <p class="text-lg">今日挑戰已達極限，明日再來挑戰！</p>
+            <div class="flex flex-col gap-2 mt-4">
+                <button onclick="resetHPForDebug()" class="text-[10px] text-white/50 underline">管理員重置 (Debug Only)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知元件 -->
+    <div id="notification" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] bg-yellow-400 text-black px-6 py-3 pixel-border font-bold hidden opacity-0 transition-all duration-500">
+        <span id="notification-text">QUEST ACCEPTED!</span>
+    </div>
+
+    <div class="max-w-4xl mx-auto space-y-12 pb-20">
+        <header class="text-center space-y-4">
+            <h1 class="text-3xl md:text-5xl font-bold pixel-font text-yellow-400 mb-2">我獨自升級</h1>
+            <p class="text-gray-400">正在用 n8n 打造自動化生活的自我成長實踐者。</p>
+        </header>
+
+        <!-- 01. 角色狀態 -->
+        <section class="bg-slate-900 p-6 rounded-lg border-2 border-slate-700">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <span class="text-green-400">01.</span> 角色狀態
+            </h2>
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <div id="avatar-container" class="relative group" onclick="document.getElementById('avatar-upload-input').click()">
+                    <div class="w-32 h-32 md:w-40 md:h-40 pixel-border bg-slate-800 flex items-center justify-center overflow-hidden">
+                        <img id="avatar-preview" class="hidden w-full h-full object-cover" alt="Player Avatar">
+                        <div id="avatar-placeholder" class="text-white opacity-80">
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        </div>
+                        <div class="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold pointer-events-none text-center p-2">更換圖像</div>
+                        <div class="absolute bottom-0 w-full bg-black/60 text-[10px] text-center py-1 font-bold pointer-events-none">LV.<span id="level-display">1</span> PLAYER</div>
+                    </div>
+                    <input type="file" id="avatar-upload-input" accept="image/*" onchange="handleAvatarUpload(event)" style="display:none">
+                </div>
+
+                <div class="flex-1 space-y-4 w-full">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- 血條與經驗 -->
+                        <div class="space-y-4">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>HP (精神力)</span>
+                                    <span id="hp-text">100 / 100</span>
+                                </div>
+                                <div class="xp-bar-container">
+                                    <div id="hp-bar-fill"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold mb-1">
+                                    <span>XP (經驗值)</span>
+                                    <span id="xp-text">0 / 1000</span>
+                                </div>
+                                <div class="xp-bar-container">
+                                    <div id="xp-bar" class="xp-bar-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 物品欄 -->
+                        <div class="bg-black/30 p-3 border border-slate-700 rounded relative">
+                            <div class="text-[10px] text-yellow-500 font-bold mb-2 pixel-font flex justify-between">
+                                <span>Inventory</span>
+                                <span class="text-cyan-400">AP: <span id="ap-display">0</span></span>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="potion-slot flex items-center justify-center" onclick="usePotion('mid')" title="中階恢復藥水 (HP+50)">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M10 2v4M14 2v4M7 8h10l1 12H6L7 8z"></path></svg>
+                                    <span id="mid-potion-count" class="potion-badge">0</span>
+                                </div>
+                                <div class="potion-slot flex items-center justify-center" onclick="usePotion('boss')" title="終極恢復藥水 (HP+100)">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10 2v4M14 2v4M7 8h10l1 12H6L7 8z"></path><path d="M12 11v6M9 14h6"></path></svg>
+                                    <span id="boss-potion-count" class="potion-badge">0</span>
+                                </div>
+                            </div>
+                            <div class="text-[9px] text-gray-500 mt-2 italic">AP: 成就點數，用於商店兌換。</div>
+                        </div>
+                    </div>
+                    <button onclick="clearAllData()" class="text-[10px] text-gray-600 hover:text-red-500 underline">重置所有存檔</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 02. 任務面板 -->
+        <section class="bg-slate-900 p-6 rounded-lg border-2 border-slate-700">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <span class="text-green-400">02.</span> 任務面板
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="quest-panel" class="bg-black p-5 border-l-4 border-green-500 shadow-lg">
+                    <div id="quest-header" class="text-green-400 font-bold text-xs mb-2 text-right">SYSTEM ACTIVE</div>
+                    <div id="quest-input-area" class="space-y-3">
+                        <input type="text" id="quest-input" placeholder="輸入今日挑戰內容..." class="w-full bg-slate-800 border border-slate-600 p-3 text-sm focus:border-green-500 outline-none">
+                        <div id="temp-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                        <button onclick="startQuest()" id="start-btn" class="pixel-button text-xs w-full">接受挑戰 (Start)</button>
+                    </div>
+                    <div id="quest-play-area" class="hidden space-y-3">
+                        <div id="active-list" class="space-y-2"></div>
+                        <div id="quest-progress-text" class="text-xs text-gray-400 mt-4 italic">進度: 0%</div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-950 p-5 border-2 border-dashed border-yellow-500 h-64 overflow-hidden flex flex-col">
+                    <div class="text-[10px] font-bold text-yellow-500 mb-2">LIVE SYSTEM LOGS</div>
+                    <div id="system-logs" class="text-[10px] font-mono text-indigo-300 space-y-1 overflow-y-auto flex-1"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 03. 中階 BOSS -->
+        <section class="bg-slate-900 rounded-lg border-2 border-slate-700 boss-glow-purple flex flex-col md:flex-row overflow-hidden">
+            <div class="p-6 flex-1">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><span class="text-purple-500">03.</span> 中階 BOSS</h2>
+                <div id="mid-setup-area" class="space-y-4">
+                    <input type="text" id="mid-input-field" placeholder="設定中期目標..." class="boss-input boss-input-purple text-sm">
+                    <button onclick="confirmMidGoal()" class="bg-purple-600 text-white text-xs font-bold px-6 py-3">鎖定目標</button>
+                </div>
+                <div id="mid-display-area" class="hidden space-y-4">
+                    <h3 id="mid-goal-text" class="text-2xl font-bold"></h3>
+                    <div class="flex gap-4"><button onclick="completeMidGoal()" class="bg-green-600 text-white text-[10px] px-4 py-2 pixel-border">擊敗目標</button><button onclick="editMidGoal()" class="text-[10px] text-gray-500 underline">重設</button></div>
+                    <p class="text-[10px] text-purple-400">勝利獎勵：XP+2000, 藥水(50HP) x1, AP +1</p>
+                </div>
+            </div>
+            <div class="w-full md:w-64 trophy-list p-4"><div class="pixel-font text-[10px] text-purple-300 mb-2 border-b border-purple-900">Trophies</div><div id="mid-trophy-container" class="space-y-2 text-xs"></div></div>
+        </section>
+
+        <!-- 04. 最終大魔王 -->
+        <section class="bg-slate-900 rounded-lg border-2 border-slate-700 boss-glow-red flex flex-col md:flex-row overflow-hidden">
+            <div class="p-6 flex-1">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2"><span class="text-red-500">04.</span> 最終大魔王</h2>
+                <div id="boss-setup-area" class="space-y-4">
+                    <input type="text" id="boss-input-field" placeholder="設定終極目標..." class="boss-input boss-input-red text-sm">
+                    <button onclick="confirmBossGoal()" class="bg-red-600 text-white text-xs font-bold px-6 py-3">鎖定目標</button>
+                </div>
+                <div id="boss-display-area" class="hidden space-y-4">
+                    <h3 id="boss-goal-text" class="text-2xl font-bold"></h3>
+                    <div class="flex gap-4"><button onclick="completeBossGoal()" class="bg-green-600 text-white text-[10px] px-4 py-2 pixel-border">成就達成</button><button onclick="editBossGoal()" class="text-[10px] text-gray-500 underline">重設</button></div>
+                    <p class="text-[10px] text-red-400">勝利獎勵：XP+5000, 藥水(100HP) x1, AP +3</p>
+                </div>
+            </div>
+            <div class="w-full md:w-64 trophy-list p-4"><div class="pixel-font text-[10px] text-red-400 mb-2 border-b border-red-900">Greatest Feats</div><div id="boss-trophy-container" class="space-y-2 text-xs"></div></div>
+        </section>
+
+        <!-- 05. 點數兌換商店 -->
+        <section class="bg-slate-900 p-6 rounded-lg border-2 border-slate-700 border-cyan-500/50">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 class="text-xl font-bold flex items-center gap-2">
+                    <span class="text-cyan-400">05.</span> 成就商店
+                </h2>
+                <!-- 商店專屬點數顯示 -->
+                <div class="flex items-center gap-3 bg-black/50 px-4 py-2 rounded-full border border-cyan-500/30">
+                    <span class="pixel-font text-[10px] text-cyan-400">Current AP:</span>
+                    <span id="shop-ap-display" class="text-xl font-bold text-white">0</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 新增物品區 -->
+                <div class="space-y-4">
+                    <div class="bg-black/40 p-4 border border-slate-700 rounded">
+                        <p class="text-xs text-cyan-300 mb-4 font-bold flex items-center gap-2">
+                            🛒 定義獎勵 (每個消耗 1 AP)
+                        </p>
+                        <div class="flex gap-2">
+                            <input type="text" id="shop-input" placeholder="新增獎勵物品..." class="flex-1 bg-slate-800 border border-slate-600 p-2 text-xs outline-none focus:border-cyan-400">
+                            <button onclick="addShopItem()" class="bg-cyan-600 text-white px-4 py-2 text-[10px] font-bold">新增</button>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-gray-400 italic space-y-1">
+                        <p>* 成就點數 (AP) 可透過擊敗 BOSS 獲得。</p>
+                        <p>* 兌換後的獎勵將被標記為完成狀態。</p>
+                    </div>
+                </div>
+
+                <!-- 物品列表區 -->
+                <div class="space-y-2">
+                    <div class="pixel-font text-[10px] text-cyan-500 mb-2 flex justify-between">
+                        <span>Available Rewards</span>
+                        <span id="shop-count" class="text-gray-500">0 Items</span>
+                    </div>
+                    <div id="shop-list" class="space-y-2 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                        <!-- 商店物品渲染區 -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center py-10 opacity-50"><div class="pixel-font text-[10px]">Restoration Items & Reward Points Syncing...</div></footer>
+    </div>
+
+    <script>
+        let currentXP = 0;
+        let currentLevel = 1;
+        let currentHP = 100;
+        let achievementPoints = 0;
+        let quests = [];
+        let tempQuests = [];
+        let shopItems = []; // 結構: { name: string, redeemed: boolean }
+        let isPlaying = false;
+        let avatarData = null;
+        let logHistory = [];
+        let bossGoal = "";
+        let midGoal = "";
+        let bossHistory = [];
+        let midHistory = [];
+        
+        let inventory = {
+            midPotion: 0,
+            bossPotion: 0
+        };
+
+        // --- HP 系統核心 ---
+        function updateHP(amount) {
+            currentHP = Math.max(0, Math.min(100, currentHP + amount));
+            const hpFill = document.getElementById('hp-bar-fill');
+            const hpText = document.getElementById('hp-text');
+            
+            hpFill.style.width = `${currentHP}%`;
+            hpText.innerText = `${currentHP} / 100`;
+
+            if (currentHP <= 40) hpFill.classList.add('hp-low');
+            else hpFill.classList.remove('hp-low');
+
+            if (currentHP <= 0) {
+                triggerLockout();
+            } else {
+                document.body.classList.remove('system-locked');
+                document.getElementById('lockout-overlay').classList.remove('active');
+            }
+            saveGameData();
+        }
+
+        function triggerLockout() {
+            document.body.classList.add('system-locked');
+            document.getElementById('lockout-overlay').classList.add('active');
+            addLog("!! 警告：精神力枯竭，系統已進入保護模式。");
+        }
+
+        function resetHPForDebug() {
+            currentHP = 100;
+            updateHP(0);
+            addLog("系統重啟成功。");
+        }
+
+        // --- 點數與藥水系統 ---
+        function updateAPUI() {
+            document.getElementById('ap-display').innerText = achievementPoints;
+            document.getElementById('shop-ap-display').innerText = achievementPoints;
+        }
+
+        function usePotion(type) {
+            if (currentHP >= 100) {
+                showNotification("HP 已滿，無需使用藥水。");
+                return;
+            }
+
+            if (type === 'mid' && inventory.midPotion > 0) {
+                inventory.midPotion--;
+                updateHP(50);
+                addLog("使用了中階恢復藥水 (HP +50)");
+                showNotification("恢復了 50 點精神力！");
+            } else if (type === 'boss' && inventory.bossPotion > 0) {
+                inventory.bossPotion--;
+                updateHP(100);
+                addLog("使用了終極恢復藥水 (HP +100)");
+                showNotification("恢復了 100 點精神力！");
+            } else {
+                showNotification("藥水不足！擊敗 BOSS 獲取。");
+            }
+            updateInventoryUI();
+            saveGameData();
+        }
+
+        function updateInventoryUI() {
+            document.getElementById('mid-potion-count').innerText = inventory.midPotion;
+            document.getElementById('boss-potion-count').innerText = inventory.bossPotion;
+            updateAPUI();
+        }
+
+        // --- 商店邏輯 ---
+        function addShopItem() {
+            const input = document.getElementById('shop-input');
+            const val = input.value.trim();
+            if (!val) return;
+            shopItems.push({ name: val, redeemed: false });
+            input.value = "";
+            renderShopList();
+            saveGameData();
+        }
+
+        function renderShopList() {
+            const list = document.getElementById('shop-list');
+            document.getElementById('shop-count').innerText = `${shopItems.length} Items`;
+            
+            if (shopItems.length === 0) {
+                list.innerHTML = `<div class="text-gray-600 text-xs italic p-8 text-center border border-dashed border-slate-800">尚未定義任何獎勵物品</div>`;
+                return;
+            }
+
+            list.innerHTML = shopItems.map((item, i) => `
+                <div class="shop-item ${item.redeemed ? 'redeemed' : ''}">
+                    <div class="flex flex-col">
+                        <span class="item-name text-xs text-slate-200 font-bold">${item.name}</span>
+                        ${item.redeemed ? '<span class="text-[9px] text-green-500 font-bold mt-1">✓ 已兌換</span>' : '<span class="text-[9px] text-slate-500 mt-1">消耗 1 AP</span>'}
+                    </div>
+                    <div class="flex gap-2">
+                        <button 
+                            onclick="exchangeItem(${i})" 
+                            ${item.redeemed ? 'disabled' : ''}
+                            class="${item.redeemed ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-cyan-900/40 hover:bg-cyan-600 text-cyan-400 hover:text-white border-cyan-500/50'} border px-3 py-1 text-[9px] font-bold transition-all"
+                        >
+                            ${item.redeemed ? '已領取' : '兌換 (1AP)'}
+                        </button>
+                        <button onclick="removeShopItem(${i})" class="text-slate-600 hover:text-red-500 px-1 transition-colors">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeShopItem(index) {
+            shopItems.splice(index, 1);
+            renderShopList();
+            saveGameData();
+        }
+
+        function exchangeItem(index) {
+            if (achievementPoints < 1) {
+                showNotification("成就點數不足！無法兌換。");
+                return;
+            }
+            
+            const item = shopItems[index];
+            if (item.redeemed) return;
+
+            achievementPoints -= 1;
+            item.redeemed = true; // 標記為已兌換
+            
+            addLog(`成就兌換：成功兌換獎勵「${item.name}」`);
+            showNotification(`兌換成功：${item.name}`);
+            
+            updateAPUI();
+            renderShopList();
+            saveGameData();
+        }
+
+        // --- 任務面板邏輯 ---
+        function startQuest() {
+            if (tempQuests.length === 0) return;
+            quests = tempQuests.map(q => ({ text: q, completed: false }));
+            isPlaying = true;
+            document.getElementById('quest-input-area').classList.add('hidden');
+            document.getElementById('quest-play-area').classList.remove('hidden');
+            renderPlayList();
+            saveGameData();
+        }
+
+        function toggleQuest(index) {
+            if (quests[index].completed) return;
+            quests[index].completed = true;
+            updateHP(-20);
+            addLog(`完成任務：${quests[index].text} (HP -20)`);
+            renderPlayList();
+            saveGameData();
+            if (currentHP > 0) {
+                const completedCount = quests.filter(q => q.completed).length;
+                if (completedCount === quests.length) {
+                    showNotification("QUEST CLEAR! XP +300");
+                    setTimeout(() => { updateXPUI(300); resetPanel(); }, 1000);
+                }
+            }
+        }
+
+        function renderPlayList() {
+            const list = document.getElementById('active-list');
+            list.innerHTML = quests.map((q, i) => `
+                <div class="quest-item ${q.completed ? 'completed' : ''}" onclick="toggleQuest(${i})">
+                    <div class="w-5 h-5 border-2 border-white flex items-center justify-center text-[10px] shrink-0">${q.completed ? '✔' : ''}</div>
+                    <span class="text-sm">${q.text}</span>
+                </div>
+            `).join('');
+            const progress = Math.round((quests.filter(q => q.completed).length / (quests.length || 1)) * 100);
+            document.getElementById('quest-progress-text').innerText = `進度: ${progress}%`;
+        }
+
+        function renderTempList() {
+            document.getElementById('temp-list').innerHTML = tempQuests.map((q, i) => `<div class="text-xs bg-slate-800 p-2 border border-slate-700 flex justify-between"><span>- ${q}</span><button onclick="tempQuests.splice(${i},1);renderTempList();saveGameData();" class="text-red-500 px-2">X</button></div>`).join('');
+        }
+
+        document.getElementById('quest-input').onkeypress = (e) => {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+                tempQuests.push(e.target.value.trim());
+                e.target.value = ""; renderTempList(); saveGameData();
+            }
+        };
+
+        function resetPanel() {
+            tempQuests = []; quests = []; isPlaying = false;
+            document.getElementById('quest-input-area').classList.remove('hidden');
+            document.getElementById('quest-play-area').classList.add('hidden');
+            renderTempList(); saveGameData();
+        }
+
+        // --- 核心輔助功能 ---
+        function updateXPUI(gain, log = true) {
+            currentXP += gain;
+            if (log && gain > 0) addLog(`XP +${gain}`);
+            while (currentXP >= 1000) { currentLevel++; currentXP -= 1000; showNotification("LEVEL UP!"); }
+            document.getElementById('xp-bar').style.width = `${(currentXP / 1000) * 100}%`;
+            document.getElementById('xp-text').innerText = `${currentXP} / 1000`;
+            document.getElementById('level-display').innerText = currentLevel;
+            saveGameData();
+        }
+
+        function showNotification(text) {
+            const el = document.getElementById('notification');
+            document.getElementById('notification-text').innerText = text;
+            el.classList.remove('hidden'); setTimeout(() => el.classList.add('opacity-100'), 10);
+            setTimeout(() => { el.classList.remove('opacity-100'); setTimeout(() => el.classList.add('hidden'), 500); }, 3000);
+        }
+
+        function addLog(msg) {
+            const t = new Date().toLocaleTimeString();
+            logHistory.push(`[${t}] ${msg}`);
+            if (logHistory.length > 50) logHistory.shift();
+            renderLogs(); saveGameData();
+        }
+
+        function renderLogs() {
+            const el = document.getElementById('system-logs');
+            el.innerHTML = logHistory.map(l => `<div>${l}</div>`).join('');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // --- BOSS 邏輯 ---
+        function confirmMidGoal() { midGoal = document.getElementById('mid-input-field').value; updateMidUI(); saveGameData(); }
+        function editMidGoal() { midGoal = ""; updateMidUI(); saveGameData(); }
+        function updateMidUI() { 
+            const s = document.getElementById('mid-setup-area'), d = document.getElementById('mid-display-area');
+            if(midGoal) { s.classList.add('hidden'); d.classList.remove('hidden'); document.getElementById('mid-goal-text').innerText = midGoal; }
+            else { s.classList.remove('hidden'); d.classList.add('hidden'); }
+        }
+        function completeMidGoal() { 
+            midHistory.push({text: midGoal, date: new Date().toLocaleDateString()}); 
+            updateXPUI(2000); 
+            inventory.midPotion++;
+            achievementPoints += 1; 
+            midGoal = ""; updateMidUI(); renderTrophies(); updateInventoryUI(); 
+            showNotification("擊敗中階 BOSS！獲得 1 AP");
+            addLog("擊敗中階 BOSS，獲得藥水與 1 成就點數。");
+        }
+
+        function confirmBossGoal() { bossGoal = document.getElementById('boss-input-field').value; updateBossUI(); saveGameData(); }
+        function editBossGoal() { bossGoal = ""; updateBossUI(); saveGameData(); }
+        function updateBossUI() {
+            const s = document.getElementById('boss-setup-area'), d = document.getElementById('boss-display-area');
+            if(bossGoal) { s.classList.add('hidden'); d.classList.remove('hidden'); document.getElementById('boss-goal-text').innerText = bossGoal; }
+            else { s.classList.remove('hidden'); d.classList.add('hidden'); }
+        }
+        function completeBossGoal() { 
+            bossHistory.push({text: bossGoal, date: new Date().toLocaleDateString()}); 
+            updateXPUI(5000); 
+            inventory.bossPotion++;
+            achievementPoints += 3; 
+            bossGoal = ""; updateBossUI(); renderTrophies(); updateInventoryUI(); 
+            showNotification("擊敗大魔王！獲得 3 AP");
+            addLog("成就達成！獲得藥水與 3 成就點數。");
+        }
+
+        function renderTrophies() {
+            document.getElementById('mid-trophy-container').innerHTML = midHistory.length ? midHistory.map(h => `<div class="bg-purple-900/30 p-2 border-l-2 border-purple-500 mb-1 text-[10px]">${h.text}</div>`).join('') : '<div class="text-gray-600 italic py-2 text-[10px]">尚無記錄</div>';
+            document.getElementById('boss-trophy-container').innerHTML = bossHistory.length ? bossHistory.map(h => `<div class="bg-red-900/30 p-2 border-l-2 border-red-500 mb-1 text-[10px]">${h.text}</div>`).join('') : '<div class="text-gray-600 italic py-2 text-[10px]">尚無記錄</div>';
+        }
+
+        // --- 存檔系統 ---
+        function saveGameData() {
+            const data = {
+                currentXP, currentLevel, currentHP, achievementPoints, tempQuests, quests, 
+                shopItems, isPlaying, avatarData, logHistory, bossGoal, midGoal, 
+                bossHistory, midHistory, inventory
+            };
+            localStorage.setItem('solo_leveling_v9_save', JSON.stringify(data));
+        }
+
+        function loadGameData() {
+            const savedData = localStorage.getItem('solo_leveling_v9_save');
+            if (savedData) {
+                const d = JSON.parse(savedData);
+                currentXP = d.currentXP || 0;
+                currentLevel = d.currentLevel || 1;
+                currentHP = (d.currentHP !== undefined) ? d.currentHP : 100;
+                achievementPoints = d.achievementPoints || 0;
+                tempQuests = d.tempQuests || [];
+                quests = d.quests || [];
+                shopItems = d.shopItems || [];
+                // 相容舊版本格式
+                if (shopItems.length > 0 && typeof shopItems[0] === 'string') {
+                    shopItems = shopItems.map(name => ({ name: name, redeemed: false }));
+                }
+                isPlaying = d.isPlaying || false;
+                avatarData = d.avatarData || null;
+                logHistory = d.logHistory || [];
+                bossGoal = d.bossGoal || "";
+                midGoal = d.midGoal || "";
+                bossHistory = d.bossHistory || [];
+                midHistory = d.midHistory || [];
+                inventory = d.inventory || { midPotion: 0, bossPotion: 0 };
+
+                if (isPlaying) {
+                    document.getElementById('quest-input-area').classList.add('hidden');
+                    document.getElementById('quest-play-area').classList.remove('hidden');
+                    renderPlayList();
+                }
+                if (avatarData) displayAvatar(avatarData);
+                updateMidUI(); updateBossUI(); renderTrophies(); renderLogs(); renderShopList();
+                updateXPUI(0, false);
+                updateHP(0); 
+                updateInventoryUI();
+            } else {
+                updateHP(0);
+                updateInventoryUI();
+                renderShopList();
+            }
+        }
+
+        function handleAvatarUpload(e) {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader(); r.onload = (ev) => { avatarData = ev.target.result; displayAvatar(avatarData); saveGameData(); }; r.readAsDataURL(f);
+        }
+        function displayAvatar(b) { const p = document.getElementById('avatar-preview'), h = document.getElementById('avatar-placeholder'); if(b){ p.src=b; p.classList.remove('hidden'); h.classList.add('hidden'); } }
+
+        function clearAllData() { if(confirm("確定重置？這將清除所有進度、等級與商店紀錄。")) { localStorage.clear(); location.reload(); } }
+
+        window.onload = loadGameData;
+    </script>
+</body>
+</html>
