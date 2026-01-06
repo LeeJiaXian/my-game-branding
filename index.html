@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自媒體遊戲化視覺強化範本 | 我獨自升級</title>
+    <!-- SEO 優化標籤 -->
+    <meta name="description" content="個人成長與自動化生活的遊戲化視覺範本">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --primary-green: #22c55e;
+            --accent-yellow: #facc15;
+            --system-purple: #a855f7;
+            --border-pixel: 4px;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: white;
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .pixel-font {
+            font-family: 'Press+Start+2P', cursive;
+            text-transform: uppercase;
+        }
+
+        .pixel-border {
+            border: var(--border-pixel) solid white;
+            box-shadow: 
+                0 4px 0 0 #000,
+                0 -4px 0 0 #000,
+                4px 0 0 0 #000,
+                -4px 0 0 0 #000;
+            position: relative;
+        }
+
+        .pixel-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--primary-green);
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s;
+            border: 2px solid black;
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.5);
+        }
+
+        .pixel-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.5);
+        }
+
+        .pixel-button:disabled {
+            background-color: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        .xp-bar-container {
+            width: 100%;
+            height: 1.25rem;
+            background-color: #1e293b;
+            border: 2px solid #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #86efac);
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .xp-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(255,255,255,0.4), transparent);
+        }
+
+        .typing-effect {
+            overflow: hidden;
+            border-right: .15em solid var(--accent-yellow);
+            white-space: nowrap;
+            letter-spacing: .15em;
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--accent-yellow); }
+        }
+
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .quest-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .quest-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .quest-item.completed {
+            border-color: var(--primary-green);
+            background: rgba(34, 197, 94, 0.1);
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+
+        #notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-150%);
+            z-index: 100;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        #notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* 等級提升特效 */
+        @keyframes levelup-pulse {
+            0% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.1); filter: brightness(1.5); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .level-up-anim {
+            animation: levelup-pulse 0.5s ease-in-out 3;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="notification" class="bg-yellow-400 text-black px-6 py-3 pixel-border font-bold">
+        <span id="notification-text">QUEST ACCEPTED!</span>
+    </div>
+
+    <div class="max-w-4xl mx-auto space-y-12">
+        
+        <header class="text-center space-y-4">
+            <h1 class="text-3xl md:text-5xl font-bold pixel-font text-yellow-400 mb-2">我獨自升級</h1>
+            <p class="text-gray-400">正在用 n8n 打造自動化生活的自我成長實踐者。</p>
+        </header>
+
+        <section class="bg-slate-900 p-6 rounded-lg border-2 border-slate-700">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <span class="text-green-400">01.</span> 角色狀態
+            </h2>
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <div id="avatar-container" class="relative">
+                    <div class="w-32 h-32 md:w-40 md:h-40 pixel-border bg-slate-800 flex items-center justify-center overflow-hidden">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white opacity-80">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <div class="absolute bottom-0 w-full bg-black/60 text-[10px] text-center py-1 font-bold">
+                            LV.<span id="level-display">1</span> PLAYER
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 space-y-4 w-full">
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span>HP (精神力)</span>
+                            <span>100 / 100</span>
+                        </div>
+                        <div class="xp-bar-container">
+                            <div class="h-full bg-red-500 w-[100%]"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span>XP (經驗值)</span>
+                            <span id="xp-text">0 / 1000</span>
+                        </div>
+                        <div class="xp-bar-container">
+                            <div id="xp-bar" class="xp-bar-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-slate-900 p-6 rounded-lg border-2 border-slate-700">
+            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                <span class="text-green-400">02.</span> 任務面板
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div id="quest-panel" class="bg-black p-5 border-l-4 border-green-500 shadow-lg">
+                    <div id="quest-header" class="text-green-400 font-bold text-xs mb-2">QUEST SETUP</div>
+                    <h3 id="quest-title" class="text-lg font-bold mb-4">今日挑戰清單</h3>
+                    
+                    <div id="quest-input-area" class="space-y-3">
+                        <input type="text" id="quest-input" placeholder="輸入任務內容並按 Enter..." 
+                            class="w-full bg-slate-800 border border-slate-600 p-3 text-sm focus:border-green-500 outline-none text-white">
+                        <div id="temp-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                        <div class="mt-6 flex justify-between items-end">
+                            <span class="text-yellow-500 text-xs font-bold">獎勵: XP +300</span>
+                            <button onclick="startQuest()" id="start-btn" class="pixel-button text-xs">接受挑戰</button>
+                        </div>
+                    </div>
+
+                    <div id="quest-play-area" class="hidden space-y-3">
+                        <div id="active-list" class="space-y-2"></div>
+                        <div id="quest-progress-text" class="text-xs text-gray-400 mt-4 italic">進度: 0%</div>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-950 p-5 border-2 border-dashed border-yellow-500 relative">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-2 py-0.5 text-[10px] font-bold">SYSTEM LOGS</div>
+                    <div class="space-y-4 mt-2">
+                        <h3 class="font-bold border-b border-indigo-800 pb-2 flex items-center gap-2">
+                            <span>📊</span> 數據日誌
+                        </h3>
+                        <div id="system-logs" class="text-[10px] font-mono text-indigo-300 space-y-1 h-32 overflow-y-auto">
+                            <div>[SYSTEM] 初始化完畢...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="text-center py-10 opacity-50">
+            <div class="pixel-font text-[10px]">Leveling Up Your Life...</div>
+        </footer>
+    </div>
+
+    <script>
+        let currentXP = 0;
+        let currentLevel = 1;
+        const maxXPPerLevel = 1000;
+        let quests = [];
+        let tempQuests = ["完成自動化腳本", "閱讀 30 分鐘"];
+
+        window.onload = () => {
+            updateXPUI(0);
+            renderTempList();
+        };
+
+        function addLog(msg) {
+            const logs = document.getElementById('system-logs');
+            const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            logs.innerHTML += `<div>[${time}] ${msg}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function showNotification(text) {
+            const el = document.getElementById('notification');
+            document.getElementById('notification-text').innerText = text;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        document.getElementById('quest-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter' && this.value.trim() !== "") {
+                tempQuests.push(this.value.trim());
+                this.value = "";
+                renderTempList();
+            }
+        });
+
+        function renderTempList() {
+            const list = document.getElementById('temp-list');
+            list.innerHTML = tempQuests.map((q, i) => `
+                <div class="text-xs flex justify-between group bg-slate-800 p-2 border border-slate-700">
+                    <span>- ${q}</span>
+                    <button onclick="removeTemp(${i})" class="text-red-500 opacity-0 group-hover:opacity-100 px-2">刪除</button>
+                </div>
+            `).join('');
+            document.getElementById('start-btn').disabled = tempQuests.length === 0;
+        }
+
+        function removeTemp(index) {
+            tempQuests.splice(index, 1);
+            renderTempList();
+        }
+
+        function startQuest() {
+            quests = tempQuests.map(q => ({ text: q, completed: false }));
+            showNotification("任務已啟動！");
+            addLog("進入挑戰模式。");
+            document.getElementById('quest-input-area').classList.add('hidden');
+            document.getElementById('quest-play-area').classList.remove('hidden');
+            document.getElementById('quest-header').innerText = "QUEST ACTIVE";
+            renderPlayList();
+        }
+
+        function renderPlayList() {
+            const list = document.getElementById('active-list');
+            list.innerHTML = quests.map((q, i) => `
+                <div class="quest-item ${q.completed ? 'completed' : ''}" onclick="toggleQuest(${i})">
+                    <div class="w-5 h-5 border-2 border-white flex items-center justify-center text-[10px] shrink-0">
+                        ${q.completed ? '✔' : ''}
+                    </div>
+                    <span class="text-sm">${q.text}</span>
+                </div>
+            `).join('');
+            
+            const completedCount = quests.filter(q => q.completed).length;
+            const progress = Math.round((completedCount / quests.length) * 100);
+            document.getElementById('quest-progress-text').innerText = `完成進度: ${progress}%`;
+
+            if (completedCount === quests.length && quests.length > 0) {
+                finishAll();
+            }
+        }
+
+        function toggleQuest(index) {
+            quests[index].completed = !quests[index].completed;
+            renderPlayList();
+        }
+
+        function finishAll() {
+            addLog("完成所有任務！結算經驗值...");
+            showNotification("任務完成！XP +300");
+            
+            setTimeout(() => {
+                updateXPUI(300);
+                resetPanel();
+            }, 800);
+        }
+
+        function updateXPUI(gain) {
+            currentXP += gain;
+            addLog(`獲得經驗值: +${gain}`);
+
+            // 處理等級提升邏輯
+            while (currentXP >= maxXPPerLevel) {
+                currentLevel++;
+                currentXP -= maxXPPerLevel;
+                triggerLevelUpEffect();
+            }
+
+            const xpBar = document.getElementById('xp-bar');
+            const xpText = document.getElementById('xp-text');
+            const levelDisplay = document.getElementById('level-display');
+            
+            const percentage = (currentXP / maxXPPerLevel) * 100;
+            xpBar.style.width = `${percentage}%`;
+            xpText.innerText = `${currentXP} / ${maxXPPerLevel}`;
+            levelDisplay.innerText = currentLevel;
+        }
+
+        function triggerLevelUpEffect() {
+            addLog(`恭喜！等級提升至 LV.${currentLevel}！`);
+            showNotification(`LEVEL UP! REACHED LV.${currentLevel}`);
+            
+            const avatar = document.getElementById('avatar-container');
+            avatar.classList.add('level-up-anim');
+            setTimeout(() => avatar.classList.remove('level-up-anim'), 2000);
+        }
+
+        function resetPanel() {
+            const panel = document.getElementById('quest-panel');
+            panel.style.opacity = "0.5";
+            setTimeout(() => {
+                tempQuests = [];
+                document.getElementById('quest-input-area').classList.remove('hidden');
+                document.getElementById('quest-play-area').classList.add('hidden');
+                document.getElementById('quest-header').innerText = "QUEST SETUP";
+                panel.style.opacity = "1";
+                renderTempList();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
